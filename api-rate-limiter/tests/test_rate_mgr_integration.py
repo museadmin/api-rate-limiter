@@ -18,21 +18,24 @@ class MyTestCase(unittest.TestCase):
 
     # noinspection PyInterpreter,PyInterpreter
     def setUp(self):
-        self.rate_limiter = ApiRateLimiter(self.RATE)
-        self.rate_limiter.debug = True
-
         self.session = boto3.Session(profile_name='ds-nonprod')
         self.credentials = self.session.get_credentials().__dict__
 
         # Uncomment for MFA token prompt, e.g. Credentials not in environment vars
         # This was tested in Pycharm with a run config containing the AWS credentials as ENV vars
-        sts_client = self.session.ec2_client('sts')
-        sts_client.get_caller_identity()
+        # sts_client = self.session.client('sts')
+        # sts_client.get_caller_identity()
 
-        # Create an EC2 client with a latency value for api interval of 250ms
-        self.ec2_client = connect_service('ec2', self.credentials, self.session.region_name)  # , None, False)
+    def query_ec2(self, thread_id):
+        client = connect_service('ec2', self.credentials, self.session.region_name)
+        waiter = self.rate_limiter.enqueue()
+        while waiter.waiting is True:
+            now = waiter.now()
+            if now >= waiter.timeout:
+                print('ERROR: ThreadID ' + str(thread_id) + ' timed-out now = ' + str(now) + ' timeout = ' + str(
+                    waiter.timeout))
+            pass
 
-    def query_ec2(self, client, thread_id):
         try:
             result = client.describe_instances()
             self.assertTrue(result.get('Reservations') is not None)
@@ -40,15 +43,19 @@ class MyTestCase(unittest.TestCase):
             print('ERROR: Thread ' + thread_id + ' caused an exception. msg(' + err + ')')
         finally:
             with self.mutex:
-                self.thread_end_times.append(client.api_rate_mgr.now())
+                self.thread_end_times.append(self.rate_limiter.now())
 
     def test_10_threads_query_ec2(self):
+
+        self.rate_limiter = ApiRateLimiter(self.RATE)
+        self.rate_limiter.debug = True
+        self.rate_limiter.start()
 
         threads = []
 
         # Ten threads
         for i in range(10):
-            threads.append(Thread(target=self.query_ec2, args=[self.ec2_client, i]))
+            threads.append(Thread(target=self.query_ec2, args=[i]))
 
         for t in threads:
             t.start()
@@ -56,14 +63,14 @@ class MyTestCase(unittest.TestCase):
         for t in threads:
             t.join()
 
-        self.ec2_client.api_rate_mgr.stop(True)
+        self.rate_limiter.stop(True)
 
-        self.record_test_metrics(self.ec2_client)
+        self.record_test_metrics(self.rate_limiter)
 
     def test_print_metric(self):
         self.print_test_metrics()
 
-    def record_test_metrics(self, client):
+    def record_test_metrics(self, rate_limiter):
         total = 0
         for t in self.thread_end_times:
             total += t
@@ -72,10 +79,10 @@ class MyTestCase(unittest.TestCase):
         avg_step_str = '{0: <25}'.format('Average thread time') + "= {0:.2f}".format(avg)
         act_step = '{0: <25}'.format('Set step interval') + "= {0:.2f}".format(float(self.RATE) / 1000)
 
-        dev = "{0:.2f}".format(statistics.stdev(get_intervals(client.api_rate_mgr.steps, 1000)))
+        dev = "{0:.2f}".format(statistics.stdev(get_intervals(rate_limiter.steps, 1000)))
         std_dev = 'Step Standard Deviation = ' + str(dev)
 
-        num_steps = '{0: <25}'.format('Number of steps in queue = ') + str(len(client.api_rate_mgr.steps))
+        num_steps = '{0: <25}'.format('Number of steps in queue = ') + str(len(rate_limiter.steps))
 
         self.test_metrics.append(
             self.TestMetric(
@@ -133,11 +140,10 @@ def now_millis():
     return int(round(time.time() * 1000))
 
 
-def connect_service(service, credentials, region_name=None, config=None, silent=False, api_rate=0):
+def connect_service(service, credentials, region_name=None, config=None, silent=False):
     """
     Instantiates an AWS API ec2_client
 
-    :param api_rate:                    The period between API calls in ms
     :param service:                     Service targeted, e.g. ec2
     :param credentials:                 Id, secret, token
     :param region_name:                 Region desired, e.g. us-east-2
@@ -148,7 +154,7 @@ def connect_service(service, credentials, region_name=None, config=None, silent=
     """
     api_client = None
     try:
-        client_params = {'service_name': service.lower(), 'api_rate': api_rate}
+        client_params = {'service_name': service.lower()}
         session_params = {'aws_access_key_id': credentials.get('access_key'),
                           'aws_secret_access_key': credentials.get('secret_key'),
                           'aws_session_token': credentials.get('token')}
