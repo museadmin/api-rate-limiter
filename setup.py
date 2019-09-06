@@ -1,5 +1,5 @@
 import pathlib
-from setuptools import setup
+from setuptools import find_packages, setup
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -21,9 +21,10 @@ setup(
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7.4",
+        "Programming Language :: Python :: 3.7",
     ],
-    packages=["api-rate-limiter"],
+    package_dir={'': 'api-rate-limiter'},
+    packages=find_packages("api-rate-limiter", exclude=("tests",)),
     include_package_data=True,
     install_requires=["queue", "time", "threading", "multiprocessing"],
 )
