@@ -10,11 +10,11 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="api-rate-limiter",
-    version="1.0.0",
+    version="0.1.0",
     description="Implement client side API rate limiting",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/realpython/reader",
+    url="https://github.com/museadmin/api-rate-limiter",
     author="Bradley  Atkins",
     author_email="bradley.atkinz@gmail.com",
     license="MIT",
@@ -25,10 +25,5 @@ setup(
     ],
     packages=["api-rate-limiter"],
     include_package_data=True,
-    install_requires=["feedparser", "html2text"],
-    entry_points={
-        "console_scripts": [
-            "realpython=reader.__main__:main",
-        ]
-    },
+    install_requires=["queue", "time", "threading", "multiprocessing"],
 )
