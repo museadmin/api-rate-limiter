@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="api-rate-limiter",
-    version="0.1.0",
+    version="0.1.8",
     description="Implement client side API rate limiting",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -26,5 +26,4 @@ setup(
     package_dir={'': 'api-rate-limiter'},
     packages=find_packages("api-rate-limiter", exclude=("tests",)),
     include_package_data=True,
-    install_requires=["queue", "time", "threading", "multiprocessing"],
 )

@@ -161,6 +161,8 @@ On close:
     * ADD Detailed README
     * FIX Error handling in integration test
 
+* 0.1.1
+    * FIX Remove requires for multiprocessing as now in Python3 main lib
 ## Meta
 
 Bradley Atkins – bradley.atkinz @ gmail.com
