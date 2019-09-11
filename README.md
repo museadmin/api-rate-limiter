@@ -34,9 +34,9 @@ on the MAC I was using to run the scanner.
 The NLC allows you to add latency to all outbound packets on a given 
 network like so:
 
-![](resources/nlc.png)
+![](images/nlc.png)
 
-![](resources/nlc-profile.png)
+![](images/nlc-profile.png)
 
 This blanket approach to delaying all outbound packets did resolve the 
 issue of the rate limiting, but at a cost of causing the scanner to now
@@ -50,7 +50,7 @@ It occurred to me that if a mechanism could be created within boto3
 itself to queue outbound API calls at a configurable rate, then this 
 might might prove to be a more general solution to the issue.
 
-![](resources/api_rate_overview.png)
+![](images/api_rate_overview.jpg)
 
 So I forked botocore [here](https://github.com/museadmin/botorate) into 
 a project that combined forks of botocore, boto3 and ScoutSuite.

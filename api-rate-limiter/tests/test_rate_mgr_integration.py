@@ -10,7 +10,13 @@ from threading import Thread
 
 # noinspection PyInterpreter
 class MyTestCase(unittest.TestCase):
+    """
+        Tests require AWS authentication. e.g. in Pycharm, set the run config
+        env vars for AWS keys and sts token. If running from command line, then you need
+        to export them into the current shell.
 
+        e.g. <export aws creds> PYTHONPATH=./api-rate-limiter/api-rate-limiter make test
+    """
     test_metrics = []
     thread_end_times = []
     mutex = Lock()
@@ -18,6 +24,9 @@ class MyTestCase(unittest.TestCase):
 
     # noinspection PyInterpreter,PyInterpreter
     def setUp(self):
+        if self._testMethodName == 'test_print_metric':
+            return
+
         self.session = boto3.Session(profile_name='ds-nonprod')
         self.credentials = self.session.get_credentials().__dict__
 
@@ -40,7 +49,7 @@ class MyTestCase(unittest.TestCase):
             result = client.describe_instances()
             self.assertTrue(result.get('Reservations') is not None)
         except (BotoCoreError, ClientError) as err:
-            print('ERROR: Thread ' + thread_id + ' caused an exception. msg(' + err + ')')
+            print('ERROR: Thread ' + str(thread_id) + ' caused an exception. msg(' + err.args[0] + ')')
         finally:
             with self.mutex:
                 self.thread_end_times.append(self.rate_limiter.now())
@@ -64,8 +73,9 @@ class MyTestCase(unittest.TestCase):
             t.join()
 
         self.rate_limiter.stop(True)
-
         self.record_test_metrics(self.rate_limiter)
+
+        self.assertTrue(self.rate_limiter.queue.qsize() == 0)
 
     def test_print_metric(self):
         self.print_test_metrics()
