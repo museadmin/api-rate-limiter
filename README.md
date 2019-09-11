@@ -1,6 +1,6 @@
 # API Rate Limiter
-> A simple class that allows you to implement client side API rate 
-limiting.
+> A simple Python object that allows you to implement client side API 
+rate limiting.
 
 ---
 
@@ -33,7 +33,7 @@ You can read this README correctly on the home project on GitHub.
 ## History
 
 I started looking into this issue when scanning my own client's platform
- and hit this when scanning some 15k of snapshots.
+ and hit the rate limiting issue when scanning some 15k of snapshots.
  
 Initially I managed to mitigate this using the Network Link Conditioner 
 on the MAC I was using to run the scanner. 
@@ -57,8 +57,6 @@ It occurred to me that if a mechanism could be created within boto3
 itself to queue outbound API calls at a configurable rate, then this 
 might might prove to be a more general solution to the issue.
 
-![](images/api-rate-overview.jpg)
-
 So I forked botocore [here](https://github.com/museadmin/botorate) into 
 a project that combined forks of botocore, boto3 and ScoutSuite.
 
@@ -80,50 +78,88 @@ for this as they feel that it is beyond the scope of their project.
 
 c'est la vie.
 
+## The Solution
+
 Rather than cry over a missed opportunity I've now taken the rate 
 limiter and packaged it up as a stand alone utility that anyone can 
 consume in their own projects should they need to avoid server-side rate 
-limiting in their own applications.   
+limiting:   
+
+![](images/api-rate-overview.jpg)
+
+In the diagram above, each thread needing to make an API call using 
+a/the ec2 client calls a method that first enqueues the call in a FIFO 
+queue and then waits for it to reach the head of the queue. Thereby 
+translating the asynchronous calls from the multiple threads into a 
+synchronous stream of calls at a configurable frequency.
+
+This approach allows each thread to continue to leverage parallel 
+processing of tasks while only waiting on the actual API call. So you 
+still see the increase in efficiency of the multi threaded approach.
+
+By instantiating individual queues for each AWS service, each can be 
+individually configured with an appropriate rate for the consumer's 
+platform, or not rate limited at all.
+
+e.g. in my case I only had to limit the EC2 client because of the 
+excessive number of snapshots being scanned. 
 
 ## Installation
 
-OS X & Linux:
+In the usual Python fashion:
 
 ```sh
-npm install my-crazy-module --save
-```
-
-Windows:
-
-```sh
-edit autoexec.bat
+import ApiRateLimiter
 ```
 
 ## Usage example
 
-A few motivating and useful examples of how your product can be used. 
-Spice this up with code blocks and potentially more screenshots.
+See "The Solution" above or look at the tests in the GitHub repo:
 
-_For more examples and usage, please refer to the [Wiki][wiki]._
+[Tests on GitHub](https://github.com/museadmin/api-rate-limiter/tree/master/api-rate-limiter/tests)
 
-## Development setup
+### Basic Usage
 
-Describe how to install all development dependencies and how to run an 
-automated test-suite of some kind. Potentially do this for multiple 
-platforms.
+Setup:
 
-```sh
-make install
-npm test
+* Instantiate the rate limiter
+* Start it running in a background thread
+* Call the enqueue() method to join the queue
+* Poll the waiting state until false
+* Make your API call
+
+On close:
+
+* Soft stop the rate limiter – Waits for background thread to exit or timeout
+
+#### Example
+```
+    rate_limiter = ApiRateLimiter(100)
+    rate_limiter.start()
+    
+    ...
+    
+    def some_method()
+        waiter = self.rate_limiter.enqueue()
+        while waiter.waiting is True:
+            pass
+                
+        client.describe_instances()
+    
+    ...
+    
+    rate_limiter.stop(True) 
+    
+    
 ```
 
 ## Release History
 
 * 0.1.0
-    * CHANGE: Update README (module code remains unchanged)
+    * CHANGE: Initial code commit
     * ADD LICENCE
-    * ADD Graphics for README
-    * FIX typo
+    * ADD Detailed README
+    * FIX Error handling in integration test
 
 ## Meta
 
@@ -140,3 +176,4 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
 5. Create a new Pull Request
+6. Email me if I don't notice!
