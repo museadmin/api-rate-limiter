@@ -50,7 +50,7 @@ It occurred to me that if a mechanism could be created within boto3
 itself to queue outbound API calls at a configurable rate, then this 
 might might prove to be a more general solution to the issue.
 
-![](images/api_rate_overview.jpg)
+![](https://github.com/museadmin/api-rate-limiter/blob/create-package-and-licences-etc/images/api_rate_overview.jpg)
 
 So I forked botocore [here](https://github.com/museadmin/botorate) into 
 a project that combined forks of botocore, boto3 and ScoutSuite.
