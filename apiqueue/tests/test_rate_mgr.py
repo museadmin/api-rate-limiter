@@ -4,7 +4,7 @@ import unittest
 from multiprocessing import Lock
 from threading import Thread
 from time import sleep
-from api_rate_limiter import ApiRateLimiter
+from apiqueue import ApiQueue
 
 
 class TestRateManager(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestRateManager(unittest.TestCase):
     def test_10_waiters_takes_less_than_ten_seconds(self):
         # Half second latency
         self.step = 500
-        self.brm = ApiRateLimiter(self.step)
+        self.brm = ApiQueue(self.step)
         self.brm.debug = True
         self.brm.start()
         threads = []
@@ -58,7 +58,7 @@ class TestRateManager(unittest.TestCase):
 
     def test_100_waiters_with_no_contention(self):
         self.step = 100
-        self.brm = ApiRateLimiter(self.step)
+        self.brm = ApiQueue(self.step)
         self.brm.debug = True
         self.brm.start()
         threads = []
@@ -79,7 +79,7 @@ class TestRateManager(unittest.TestCase):
 
     def test_reset_of_rate_reduces_run_time(self):
         self.step = 500
-        self.brm = ApiRateLimiter(self.step)
+        self.brm = ApiQueue(self.step)
         self.brm.debug = True
         self.brm.start()
         threads = []

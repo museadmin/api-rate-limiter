@@ -5,10 +5,10 @@ import threading
 from multiprocessing import Lock
 
 
-class ApiRateLimiter:
+class ApiQueue:
     """
-    Internal API rate management for botocore library. Allows consumers
-    to set a rate that API calls are made by all boto3.resource client types, configurable
+    Client side API rate management. Allows consumers
+    to set a rate that API calls are made by all client types, configurable
     in milliseconds.
 
     So multi-threaded applications such as ScoutSuite – https://github.com/nccgroup/ScoutSuite – can fix the period
@@ -21,7 +21,8 @@ class ApiRateLimiter:
     and so continues to cause issues until it reaches a rate that is acceptable.
 
     By allowing the consumer to set the rate at the application level, rather than the network level,
-    it is possible for end users to set a rate that they know will not cause issues on their particular platform.
+    it is possible for end users to set a rate per individual client type that they know will not cause issues on their
+    particular platform.
     """
 
     def __init__(self, rate_millis):
@@ -64,15 +65,13 @@ class ApiRateLimiter:
         Set the timeout based on the Q size. Caller then waits while waiter.waiting
         :return: waiter. Consumer uses this to check if waiting and timeout if required
         """
-        waiter = ApiRateLimiter.Waiter()
+        waiter = ApiQueue.Waiter()
         with self.mutex:
             self.queue.put(waiter)
             self.queued += 1
             if self.step_time == 0:
-                # waiter.timeout = self.now() + ((self.queued + 100) * self.rate_millis)
                 waiter.timeout = self.now() + ((self.queued * 5) * self.rate_millis)
             else:
-                # waiter.timeout = self.step_time + ((self.queued + 100) * self.rate_millis)
                 waiter.timeout = self.step_time + ((self.queued * 5) * self.rate_millis)
 
         return waiter
@@ -136,7 +135,7 @@ class ApiRateLimiter:
 
     def stop(self, soft_stop=False):
         """
-        Kill the queue processor thread
+        Switch off the queue processor thread
         :type soft_stop: Boolean
         :param soft_stop: Attempt to wait for the Q to empty before killing the thread
         """

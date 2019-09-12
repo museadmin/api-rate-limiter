@@ -4,7 +4,7 @@ import time
 import unittest
 from botocore.exceptions import ClientError, BotoCoreError
 from multiprocessing import Lock
-from api_rate_limiter import ApiRateLimiter
+from apiqueue import ApiQueue
 from threading import Thread
 
 
@@ -56,7 +56,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_10_threads_query_ec2(self):
 
-        self.rate_limiter = ApiRateLimiter(self.RATE)
+        self.rate_limiter = ApiQueue(self.RATE)
         self.rate_limiter.debug = True
         self.rate_limiter.start()
 

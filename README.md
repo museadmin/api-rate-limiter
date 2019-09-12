@@ -1,5 +1,6 @@
 # API Rate Limiter
-> A simple Python object that allows you to implement client side API 
+
+A simple Python object that allows you to implement client side API 
 rate limiting.
 
 ---
@@ -55,7 +56,7 @@ solution.
 
 It occurred to me that if a mechanism could be created within boto3 
 itself to queue outbound API calls at a configurable rate, then this 
-might might prove to be a more general solution to the issue.
+might prove to be a more general solution to the issue.
 
 So I forked botocore [here](https://github.com/museadmin/botorate) into 
 a project that combined forks of botocore, boto3 and ScoutSuite.
@@ -71,12 +72,12 @@ and using the Network Link Conditioner. With the former completing in 30
  
 The queue was only applied to ec2 clients because I was only 
 experiencing rate limiting on the scanning of the snapshots, around 15k 
-+
 
 At the time of writing botocore seem to be unwilling to accept the PR 
-for this as they feel that it is beyond the scope of their project. 
+for this as they feel that it is beyond the scope of their project to 
+handle API rate limiting. 
 
-c'est la vie.
+C'est la vie.
 
 ## The Solution
 
@@ -85,7 +86,7 @@ limiter and packaged it up as a stand alone utility that anyone can
 consume in their own projects should they need to avoid server-side rate 
 limiting:   
 
-![](images/api-rate-overview.jpg)
+![](images/api-rate-overview.png)
 
 In the diagram above, each thread needing to make an API call using 
 a/the ec2 client calls a method that first enqueues the call in a FIFO 
@@ -106,10 +107,10 @@ excessive number of snapshots being scanned.
 
 ## Installation
 
-In the usual Python fashion:
+In the usual Python fashion, just import the package:
 
 ```sh
-import ApiRateLimiter
+import ApiQueue
 ```
 
 ## Usage example
@@ -122,7 +123,7 @@ See "The Solution" above or look at the tests in the GitHub repo:
 
 Setup:
 
-* Instantiate the rate limiter
+* Instantiate the API Queue
 * Start it running in a background thread
 * Call the enqueue() method to join the queue
 * Poll the waiting state until false
@@ -130,17 +131,17 @@ Setup:
 
 On close:
 
-* Soft stop the rate limiter – Waits for background thread to exit or timeout
+* Soft stop the API Queue – Waits for background thread to exit or timeout
 
-#### Example
+#### Example - 1 call every 100ms
 ```
-    rate_limiter = ApiRateLimiter(100)
-    rate_limiter.start()
+    api_queue = ApiQueue(100)
+    api_queue.start()
     
     ...
     
     def some_method()
-        waiter = self.rate_limiter.enqueue()
+        waiter = api_queue.enqueue()
         while waiter.waiting is True:
             pass
                 
@@ -148,7 +149,7 @@ On close:
     
     ...
     
-    rate_limiter.stop(True) 
+    api_queue.stop(True) 
     
     
 ```
