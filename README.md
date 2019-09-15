@@ -107,10 +107,11 @@ excessive number of snapshots being scanned.
 
 ## Installation
 
-In the usual Python fashion, just import the package:
+In the usual Python fashion, just import the package after it's 
+installed in the usual fashion:
 
 ```sh
-import ApiQueue
+from apiqueue import ApiQueue
 ```
 
 ## Usage example
